@@ -35,6 +35,50 @@ export default function Home() {
     }
   };
 
+    const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      // Single touch for drag
+      setDragging(true);
+      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else if (e.touches.length === 2) {
+      // Multi-touch for zoom
+      const [touch1, touch2] = e.touches;
+      const initialDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      setDragStart({ initialDistance });
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (dragging && e.touches.length === 1) {
+      // Handle drag
+      const dx = e.touches[0].clientX - dragStart.x;
+      const dy = e.touches[0].clientY - dragStart.y;
+      setImageOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else if (e.touches.length === 2) {
+      // Handle zoom
+      const [touch1, touch2] = e.touches;
+      const currentDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      const scaleChange = (currentDistance - dragStart.initialDistance) / 200;
+      setImageScale((prev) => Math.max(0.1, prev + scaleChange));
+      setDragStart((prev) => ({ ...prev, initialDistance: currentDistance }));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDragging(false);
+  };
+
+
   const fitImageToFrame = (img, frameWidth, frameHeight) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -164,13 +208,17 @@ export default function Home() {
     <div className={styles.container}>
       <h1 className={styles.title}>Upload Foto, Edit, dan BAGIKAN!!!!</h1>
       <div
-        className={styles.canvasContainer}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-      >
+  className={styles.canvasContainer}
+  onMouseDown={handleMouseDown}
+  onMouseMove={handleMouseMove}
+  onMouseUp={handleMouseUp}
+  onMouseLeave={handleMouseUp}
+  onWheel={handleWheel}
+  onTouchStart={handleTouchStart} // Handle touch start
+  onTouchMove={handleTouchMove}  // Handle touch move
+  onTouchEnd={handleTouchEnd}    // Handle touch end
+>
+
         <canvas
           ref={canvasRef}
           width={FRAME_WIDTH}

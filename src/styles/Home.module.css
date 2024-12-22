@@ -5,22 +5,19 @@
 }
 
 .title {
-  font-size: 2.5rem;
+  font-size: 2rem; /* Ukuran font lebih kecil di mobile */
   font-weight: bold;
   margin-bottom: 10px;
-}
-
-.description {
-  margin-bottom: 20px;
-  color: #555;
 }
 
 .canvasContainer {
   margin: 20px auto;
   border: 2px dashed #ccc;
   border-radius: 10px;
-  width: 400px; /* Preview ukuran kecil */
-  height: 500px;
+  width: 100%; /* Sesuai dengan lebar layar */
+  max-width: 400px; /* Maksimal 400px untuk desktop */
+  height: auto;
+  aspect-ratio: 4 / 5; /* Menjaga rasio 4:5 */
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -28,8 +25,8 @@
 }
 
 .canvas {
-  width: 400px; /* Preview */
-  height: 500px;
+  width: 100%; /* Sesuai dengan lebar container */
+  height: 100%; /* Sesuai dengan tinggi container */
 }
 
 .actions {
@@ -48,7 +45,7 @@
 }
 
 .button {
-  padding: 10px 20px;
+  padding: 10px 15px;
   background-color: #0070f3;
   color: #fff;
   border: none;
@@ -62,8 +59,8 @@
 }
 
 .resetButton {
-  padding: 10px 20px;
-  background-color: #f44336; /* Warna merah untuk tombol reset */
+  padding: 10px 15px;
+  background-color: #f44336;
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -73,26 +70,26 @@
 }
 
 .resetButton:hover {
-  background-color: #d32f2f; /* Warna merah lebih gelap saat hover */
-  transform: scale(1.05); /* Efek zoom kecil saat hover */
+  background-color: #d32f2f;
+  transform: scale(1.05);
 }
 
 .resetButton:active {
-  background-color: #b71c1c; /* Warna merah lebih gelap saat ditekan */
-  transform: scale(0.95); /* Efek klik */
+  background-color: #b71c1c;
+  transform: scale(0.95);
 }
-
 
 .frames {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .frames img {
-  width: 80px;
-  height: 100px;
+  width: 60px; /* Ukuran lebih kecil di mobile */
+  height: 75px;
   cursor: pointer;
   border: 2px solid transparent;
   border-radius: 5px;
@@ -112,4 +109,20 @@
   margin-top: 40px;
   font-size: 0.8rem;
   color: #666;
+}
+
+/* Media Query untuk Mobile */
+@media (max-width: 600px) {
+  .title {
+    font-size: 1.5rem; /* Font lebih kecil di layar kecil */
+  }
+
+  .actions {
+    gap: 5px; /* Jarak tombol lebih kecil */
+  }
+
+  .frames img {
+    width: 50px;
+    height: 60px;
+  }
 }
