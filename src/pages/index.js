@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "../styles/Home.module.css";
+import libheif from "libheif-js/wasm-bundle"; 
 
 export default function Home() {
   const canvasRef = useRef(null);
-  const [frame, setFrame] = useState("/frame-01.png"); // Frame default
+  const [frame, setFrame] = useState("/frame-02.png"); // Frame default
   const [image, setImage] = useState(null); // Gambar yang diunggah
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 }); // Posisi gambar
   const [imageScale, setImageScale] = useState(1); // Skala gambar
@@ -17,62 +18,126 @@ export default function Home() {
     drawCanvas(); // Render ulang setiap ada perubahan
   }, [image, frame, imageOffset, imageScale]);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    useEffect(() => {
+    // Fungsi untuk memuat script eksternal
+    const loadHeifScript = () => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/heif@0.4.0/dist/heif.min.js";
+      script.async = true;
+      script.onload = () => console.log("HEIF.js loaded");
+      document.body.appendChild(script);
+    };
+
+    loadHeifScript();
+  }, []); // Muat script saat komponen pertama kali dirender
+
+
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    if (file.type === "image/heic" || file.name.endsWith(".heic")) {
+      // Proses file HEIC
+      try {
+        const buffer = await file.arrayBuffer(); // Membaca file sebagai ArrayBuffer
+        const decoder = new libheif.HeifDecoder(); // Inisialisasi decoder
+        const data = decoder.decode(buffer); // Dekode file HEIC
+
+        // Ambil gambar pertama dari file HEIC
+        const image = data[0];
+        const width = image.get_width();
+        const height = image.get_height();
+
+        // Buat canvas untuk menggambar ulang gambar
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        const imageData = ctx.createImageData(width, height);
+
+        // Tampilkan data gambar di canvas
+        await new Promise((resolve, reject) => {
+          image.display(imageData, (displayData) => {
+            if (!displayData) {
+              return reject(new Error("HEIF processing error"));
+            }
+            resolve();
+          });
+        });
+
+        ctx.putImageData(imageData, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png"); // Konversi ke PNG
+
+        console.log("Converted HEIC to PNG:", dataUrl);
+        // Anda bisa menggunakan `dataUrl` sebagai sumber gambar:
+        const img = new Image();
+        img.src = dataUrl;
+        img.onload = () => {
+          const resizedImage = fitImageToFrame(img, FRAME_WIDTH, FRAME_HEIGHT); // Sesuaikan ukuran
+          setImage(resizedImage); // Atur state React
+          resetImagePosition(); // Reset posisi gambar
+        };
+      } catch (err) {
+        console.error("Error processing HEIC file", err);
+        alert("Gagal memproses file HEIC.");
+      }
+    } else {
+      // Proses file non-HEIC seperti biasa
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();
         img.src = reader.result;
 
         img.onload = () => {
-          const resizedImage = fitImageToFrame(img, FRAME_WIDTH, FRAME_HEIGHT); // Sesuaikan gambar
+          const resizedImage = fitImageToFrame(img, FRAME_WIDTH, FRAME_HEIGHT);
           setImage(resizedImage);
           resetImagePosition(); // Reset posisi gambar
         };
       };
       reader.readAsDataURL(file);
     }
-  };
+  }
+};
+
+
 
     const handleTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      // Single touch for drag
-      setDragging(true);
-      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-    } else if (e.touches.length === 2) {
-      // Multi-touch for zoom
-      const [touch1, touch2] = e.touches;
-      const initialDistance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      setDragStart({ initialDistance });
-    }
-  };
+  e.preventDefault(); // Mencegah pull-to-refresh
+  if (e.touches.length === 1) {
+    setDragging(true);
+    setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  } else if (e.touches.length === 2) {
+    const [touch1, touch2] = e.touches;
+    const initialDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+    setDragStart({ initialDistance });
+  }
+};
+
 
   const handleTouchMove = (e) => {
-    if (dragging && e.touches.length === 1) {
-      // Handle drag
-      const dx = e.touches[0].clientX - dragStart.x;
-      const dy = e.touches[0].clientY - dragStart.y;
-      setImageOffset((prev) => ({
-        x: prev.x + dx,
-        y: prev.y + dy,
-      }));
-      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-    } else if (e.touches.length === 2) {
-      // Handle zoom
-      const [touch1, touch2] = e.touches;
-      const currentDistance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      const scaleChange = (currentDistance - dragStart.initialDistance) / 200;
-      setImageScale((prev) => Math.max(0.1, prev + scaleChange));
-      setDragStart((prev) => ({ ...prev, initialDistance: currentDistance }));
-    }
-  };
+  e.preventDefault(); // Mencegah zoom browser dan pull-to-refresh
+  if (dragging && e.touches.length === 1) {
+    const dx = e.touches[0].clientX - dragStart.x;
+    const dy = e.touches[0].clientY - dragStart.y;
+    setImageOffset((prev) => ({
+      x: prev.x + dx,
+      y: prev.y + dy,
+    }));
+    setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  } else if (e.touches.length === 2) {
+    const [touch1, touch2] = e.touches;
+    const currentDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+    const scaleChange = (currentDistance - dragStart.initialDistance) / 200;
+    setImageScale((prev) => Math.max(0.1, prev + scaleChange));
+    setDragStart((prev) => ({ ...prev, initialDistance: currentDistance }));
+  }
+};
+
 
   const handleTouchEnd = () => {
     setDragging(false);
@@ -207,6 +272,7 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Upload Foto, Edit, dan BAGIKAN!!!!</h1>
+      {image && (<p>drag dan zoom, untuk menyesuaikan foto dengan frame</p>)}
       <div
   className={styles.canvasContainer}
   onMouseDown={handleMouseDown}
@@ -238,9 +304,9 @@ export default function Home() {
             Reset
           </button>
         )}
-        <button onClick={handleDownload} className={styles.button}>
+        {image && (<button onClick={handleDownload} className={styles.button}>
           Download
-        </button>
+        </button>)}
       </div>
       <div className={styles.frames}>
         <img

@@ -11,6 +11,8 @@
   "dependencies": {
     "autoprefixer": "^10.4.20",
     "fabric": "^6.5.3",
+    "heic2any": "^0.0.4",
+    "libheif-js": "^1.18.2",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

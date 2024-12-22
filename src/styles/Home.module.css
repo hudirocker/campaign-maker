@@ -22,9 +22,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  touch-action: none;
 }
 
 .canvas {
+  touch-action: none;
   width: 100%; /* Sesuai dengan lebar container */
   height: 100%; /* Sesuai dengan tinggi container */
 }
